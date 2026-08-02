@@ -1,0 +1,5 @@
+anthropic
+scikit-learn
+tree-sitter
+tree-sitter-python
+python-dotenv
