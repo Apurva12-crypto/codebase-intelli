@@ -23,7 +23,13 @@ _index_cache = None
 _call_graph_cache = None
 
 
-def _load_index():
+def _load_index(index_file=None):
+    """If index_file is given, load fresh from that path (no caching --
+    used by the API server where different sessions have different indexes).
+    Otherwise fall back to the cached default INDEX_FILE (used by the CLI)."""
+    if index_file is not None:
+        with open(index_file, "rb") as f:
+            return pickle.load(f)
     global _index_cache
     if _index_cache is None:
         with open(INDEX_FILE, "rb") as f:
@@ -31,7 +37,10 @@ def _load_index():
     return _index_cache
 
 
-def _load_call_graph():
+def _load_call_graph(call_graph_file=None):
+    if call_graph_file is not None:
+        with open(call_graph_file) as f:
+            return json.load(f)
     global _call_graph_cache
     if _call_graph_cache is None:
         with open(CALL_GRAPH_FILE) as f:
@@ -39,9 +48,9 @@ def _load_call_graph():
     return _call_graph_cache
 
 
-def semantic_search(query, top_k=5):
+def semantic_search(query, top_k=5, index_file=None):
     """Vector (TF-IDF) search over all chunks. Returns list of chunk summaries."""
-    idx = _load_index()
+    idx = _load_index(index_file)
     vectorizer = idx["vectorizer"]
     matrix = idx["matrix"]
     chunks = idx["chunks"]
@@ -67,22 +76,22 @@ def semantic_search(query, top_k=5):
     return results
 
 
-def get_chunk_by_name(name):
+def get_chunk_by_name(name, index_file=None):
     """Exact lookup: return full chunk (source, file, lines) for a given function/class name."""
-    idx = _load_index()
+    idx = _load_index(index_file)
     matches = [c for c in idx["chunks"] if c["name"] == name or c["name"].endswith("." + name)]
     return matches
 
 
-def find_callers(name):
+def find_callers(name, call_graph_file=None):
     """Who calls this function/class? Returns list of caller names."""
-    cg = _load_call_graph()
+    cg = _load_call_graph(call_graph_file)
     return cg["called_by"].get(name, [])
 
 
-def find_callees(name):
-    """What does this function/class call? Returns list of callee names (raw, unresolved short names)."""
-    cg = _load_call_graph()
+def find_callees(name, call_graph_file=None):
+    """What does this function call? Returns list of callee names (raw, unresolved short names)."""
+    cg = _load_call_graph(call_graph_file)
     return cg["calls"].get(name, [])
 
 

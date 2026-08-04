@@ -45,20 +45,22 @@ def build_call_graph(chunks):
     return {"calls": calls_map, "called_by": called_by_map}
 
 
-def index_repo(repo_path):
+def index_repo(repo_path, index_file=INDEX_FILE, call_graph_file=CALL_GRAPH_FILE):
+    """Index a repo. Optionally write to custom paths (used by the API server
+    so multiple repos/sessions don't clobber each other's index files)."""
     print(f"Chunking repo at {repo_path} ...")
     chunks = chunk_repo(repo_path)
     print(f"Got {len(chunks)} chunks.")
 
     if not chunks:
         print("No chunks found. Is this a Python repo? Exiting.")
-        return
+        return 0
 
     print("Building call graph ...")
     call_graph = build_call_graph(chunks)
-    with open(CALL_GRAPH_FILE, "w") as f:
+    with open(call_graph_file, "w") as f:
         json.dump(call_graph, f, indent=2)
-    print(f"Call graph saved to {CALL_GRAPH_FILE}")
+    print(f"Call graph saved to {call_graph_file}")
 
     print("Vectorizing chunks with TF-IDF ...")
     documents = [f"{c['type']} {c['name']} in {c['file']}:\n{c['source']}" for c in chunks]
@@ -70,14 +72,15 @@ def index_repo(repo_path):
     )
     matrix = vectorizer.fit_transform(documents)
 
-    with open(INDEX_FILE, "wb") as f:
+    with open(index_file, "wb") as f:
         pickle.dump({
             "vectorizer": vectorizer,
             "matrix": matrix,
             "chunks": chunks,  # full chunk dicts, so query.py can return source directly
         }, f)
 
-    print(f"Done. Indexed {len(chunks)} chunks into {INDEX_FILE}.")
+    print(f"Done. Indexed {len(chunks)} chunks into {index_file}.")
+    return len(chunks)
 
 
 if __name__ == "__main__":

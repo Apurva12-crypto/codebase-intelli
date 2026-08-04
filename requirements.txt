@@ -1,4 +1,7 @@
 anthropic
+fastapi
+uvicorn[standard]
+pydantic
 scikit-learn
 tree-sitter
 tree-sitter-python
