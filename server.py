@@ -223,7 +223,7 @@ def call_tool(name, tool_input, session):
         return json.dumps({"error": str(e)})
 
 
-def run_agent(question: str, session: dict, max_turns=8):
+def run_agent(question: str, session: dict, max_turns=15):
     messages = [{"role": "user", "content": question}]
     tool_call_log = []
 
